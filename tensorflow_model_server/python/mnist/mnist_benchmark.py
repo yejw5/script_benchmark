@@ -84,7 +84,10 @@ def main(_):
     return
 
   test_data_set = mnist_input_data.read_data_sets(FLAGS.work_dir).test
-  image, label = test_data_set.next_batch(1)
+  image, label = test_data_set.next_batch(2)
+  #print(image, label)
+  #print(image.shape)
+  #return
   #import ipdb; ipdb.set_trace()
   #do_inference(0, FLAGS.server, FLAGS.num_tests, image, label)
 

@@ -66,7 +66,7 @@ def main(_):
   end = time.time()
   duration = end - start
   qps = FLAGS.num_tests / duration
-  print("The time end predicting: {}".format(end))
+  print("\nThe time end predicting: {}".format(end))
   print("Total predict time: {}(s)".format(duration))
   print("Total predict num: {}".format(FLAGS.num_tests))
   print("qps: {}".format(qps))
