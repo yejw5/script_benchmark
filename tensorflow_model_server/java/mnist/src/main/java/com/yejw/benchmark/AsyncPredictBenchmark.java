@@ -162,6 +162,8 @@ class RequestsThread implements Callable {
             directExecutor());
         }
 
+        System.out.println("Thread " + Thread.currentThread().getId() + " has send all requests.");
+
         try {
             latch.await();
             end = System.currentTimeMillis();
