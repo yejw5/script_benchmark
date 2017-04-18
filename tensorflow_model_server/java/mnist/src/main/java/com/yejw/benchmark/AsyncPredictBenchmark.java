@@ -19,8 +19,13 @@ import tensorflow.serving.Predict;
 import tensorflow.serving.PredictionServiceGrpc;
 
 import java.lang.Thread;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,7 +40,7 @@ public class AsyncPredictBenchmark
     private static final Logger logger = Logger.getLogger(AsyncPredictBenchmark.class.getName());
 
 
-    public static void main( String[] args )
+    public static void main( String[] args ) throws Exception 
     {
         System.out.println("Start the predict client");
 
@@ -52,18 +57,34 @@ public class AsyncPredictBenchmark
             concurrency = Integer.parseInt(args[3]);
         }
 
-        for ( int i = 0; i < concurrency; ++i ) {
-            Thread t = new RequestsThread(host, port, testNum);
-            // Run predict client to send request
-            t.start();
+        ExecutorService threadPool = Executors.newCachedThreadPool();
+        long start = System.currentTimeMillis();
+
+        List<Future<Long>> taskList = new ArrayList<Future<Long>>();
+        for (int i = 0; i < concurrency; i++) {
+            Future<Long> result = threadPool.submit(new RequestsThread(host, port, testNum));
+            taskList.add(result);
         }
+
+        double avg_cost_time = 0.0;
+        while (!taskList.isEmpty()) {
+            Future<Long> task = taskList.get(0);
+            avg_cost_time += (task.get() / 1000.0);
+            taskList.remove(0);
+        }
+        threadPool.shutdown();
+        avg_cost_time /= concurrency;
+
+        long end = System.currentTimeMillis();
+        System.out.println("average cost time: " + avg_cost_time + "(s)");
+        System.out.println("qps: " + (testNum * concurrency / avg_cost_time));
 
         System.out.println("End of predict client");
     }
 
 }
 
-class RequestsThread extends Thread {
+class RequestsThread implements Callable {
     private final ManagedChannel channel;
     private final PredictionServiceGrpc.PredictionServiceFutureStub stub;
     private final int testNum;
@@ -75,12 +96,12 @@ class RequestsThread extends Thread {
     public RequestsThread(String host, int port, int testNum) {
         channel = NettyChannelBuilder.forAddress(host, port)
             .usePlaintext(true)
-            .maxMessageSize(100 * 1024 * 1024)
+            .maxMessageSize(1000 * 1024 * 1024)
             .build();
         stub = PredictionServiceGrpc.newFutureStub(channel);
         this.testNum = testNum;
     }
-    
+
     private Predict.PredictRequest getRequest()
     {
         // Generate features TensorProto
@@ -114,13 +135,14 @@ class RequestsThread extends Thread {
     }
 
     @Override
-    public void run()
-    {
+    public Long call() throws Exception {
         Predict.PredictRequest request = getRequest();
 
         final CountDownLatch latch = new CountDownLatch(testNum);
         ListenableFuture<Predict.PredictResponse> response;
 
+        long start = System.currentTimeMillis();
+        long end;
         for ( int i = 0; i < testNum; ++i ){
             // Request gRPC server
             response = stub.predict(request);
@@ -130,27 +152,25 @@ class RequestsThread extends Thread {
                     new FutureCallback<Predict.PredictResponse>() {
                         @Override
                         public void onSuccess(@Nullable Predict.PredictResponse result) {
-                            /*
-                            java.util.Map<java.lang.String, org.tensorflow.framework.TensorProto> outputs = result.getOutputs();
-                            for (java.util.Map.Entry<java.lang.String, org.tensorflow.framework.TensorProto> entry : outputs.entrySet()) {
-                                System.out.println("Response with the key: " + entry.getKey() + ", value: " + entry.getValue());
-                            }
-                            */
                             latch.countDown();
                         }
-                        @Override
-                        public void onFailure(Throwable t) {
-                            latch.countDown();
-                        }
-                    },
-                    directExecutor());
+            @Override
+            public void onFailure(Throwable t) {
+                latch.countDown();
+            }
+            },
+            directExecutor());
         }
 
         try {
             latch.await();
+            end = System.currentTimeMillis();
             shutdown();
         } catch(Exception e) {
             System.out.println(e);
+            end = System.currentTimeMillis();
         }
+        System.out.println("The cost time of thread " + Thread.currentThread().getId() + " is: " + (end - start) + "(ms)");
+        return end - start;
     }
 }
