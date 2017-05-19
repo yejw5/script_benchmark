@@ -156,12 +156,12 @@ class RequestsThread implements Callable {
                     new FutureCallback<Predict.PredictResponse>() {
                         @Override
                         public void onSuccess(@Nullable Predict.PredictResponse result) {
-                            System.out.println(".");
+                            System.out.print(".");
                             latch.countDown();
                         }
             @Override
             public void onFailure(Throwable t) {
-                System.out.println("*");
+                System.out.print("*");
                 latch.countDown();
             }
             },

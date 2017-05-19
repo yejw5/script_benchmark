@@ -1,0 +1,5 @@
+Predict with one item:
+* mvn compile exec:java -Dexec.mainClass="com.yejw.benchmark.PredictBenchmark" -Dexec.args="127.0.0.1 9000 mnist 1"
+
+Benchmark with multithread:
+* mvn compile exec:java -Dexec.mainClass="com.yejw.benchmark.AsyncPredictBenchmark" -Dexec.args="127.0.0.1 9000 100 1"
