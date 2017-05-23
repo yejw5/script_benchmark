@@ -36,12 +36,12 @@ import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
 /**
- * AsyncPredictBenchmark
+ * PredictBenchmark
  *
  */
-public class AsyncPredictBenchmark
+public class PredictBenchmark
 {
-    private static final Logger logger = Logger.getLogger(AsyncPredictBenchmark.class.getName());
+    private static final Logger logger = Logger.getLogger(PredictBenchmark.class.getName());
 
 
     public static void main( String[] args ) throws Exception 
@@ -90,7 +90,7 @@ public class AsyncPredictBenchmark
 
 class RequestsThread implements Callable {
     private final ManagedChannel channel;
-    private final PredictionServiceGrpc.PredictionServiceFutureStub stub;
+    private final PredictionServiceGrpc.PredictionServiceBlockingStub stub;
     private final int testNum;
 
     private void shutdown() throws InterruptedException {
@@ -102,7 +102,7 @@ class RequestsThread implements Callable {
             .usePlaintext(true)
             .maxMessageSize(1000 * 1024 * 1024)
             .build();
-        stub = PredictionServiceGrpc.newFutureStub(channel);
+        stub = PredictionServiceGrpc.newBlockingStub(channel);
         this.testNum = testNum;
     }
 
@@ -147,7 +147,7 @@ class RequestsThread implements Callable {
         for ( int i = 0; i < testNum; ++i ){
             Predict.PredictResponse response;
             try {
-                response = blockingStub.withDeadlineAfter(10, TimeUnit.SECONDS).predict(request);
+                response = Stub.withDeadlineAfter(10, TimeUnit.SECONDS).predict(request);
                 java.util.Map<java.lang.String, org.tensorflow.framework.TensorProto> outputs = response.getOutputs();
                 System.out.print(".");
                 /*
