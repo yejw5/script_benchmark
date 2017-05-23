@@ -66,7 +66,7 @@ public class PredictBenchmark
 
         List<Future<Long>> taskList = new ArrayList<Future<Long>>();
         for (int i = 0; i < concurrency; i++) {
-            Future<Long> result = threadPool.submit(new RequestsThread(host, port, testNum));
+            Future<Long> result = threadPool.submit(new SyncRequestsThread(host, port, testNum));
             taskList.add(result);
         }
 
@@ -88,7 +88,7 @@ public class PredictBenchmark
 
 }
 
-class RequestsThread implements Callable {
+class SyncRequestsThread implements Callable {
     private final ManagedChannel channel;
     private final PredictionServiceGrpc.PredictionServiceBlockingStub stub;
     private final int testNum;
@@ -97,7 +97,7 @@ class RequestsThread implements Callable {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    public RequestsThread(String host, int port, int testNum) {
+    public SyncRequestsThread(String host, int port, int testNum) {
         channel = NettyChannelBuilder.forAddress(host, port)
             .usePlaintext(true)
             .maxMessageSize(1000 * 1024 * 1024)
