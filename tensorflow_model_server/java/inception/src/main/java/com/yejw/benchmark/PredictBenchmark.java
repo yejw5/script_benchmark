@@ -165,6 +165,7 @@ class SyncRequestsThread implements Callable {
 
         try {
             end = System.currentTimeMillis();
+            shutdown()
         } catch(Exception e) {
             System.out.println(e);
             end = System.currentTimeMillis();
