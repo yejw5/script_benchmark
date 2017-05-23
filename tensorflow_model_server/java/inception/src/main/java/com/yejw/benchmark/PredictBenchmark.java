@@ -147,7 +147,7 @@ class SyncRequestsThread implements Callable {
         for ( int i = 0; i < testNum; ++i ){
             Predict.PredictResponse response;
             try {
-                response = Stub.withDeadlineAfter(10, TimeUnit.SECONDS).predict(request);
+                response = stub.withDeadlineAfter(10, TimeUnit.SECONDS).predict(request);
                 java.util.Map<java.lang.String, org.tensorflow.framework.TensorProto> outputs = response.getOutputs();
                 System.out.print(".");
                 /*
@@ -156,7 +156,8 @@ class SyncRequestsThread implements Callable {
                 }
                 */
             } catch (StatusRuntimeException e) {
-                logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+                //System.out.print(Level.WARNING, "RPC failed: {0}", e.getStatus());
+                System.out.print("*");
             }
         }
 
